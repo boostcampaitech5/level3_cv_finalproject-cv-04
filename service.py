@@ -22,8 +22,6 @@ from PIL import Image
 import subprocess
 
 #model 
-from ultralytics.yolo.v8.segment.predict import SegmentationPredictor
-from ultralytics.yolo.data.augment import LetterBox
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from ultralytics import YOLO
 import pycocotools.mask as mask_util
@@ -340,3 +338,21 @@ def make_video(user_id_params: str):
         
         return read_on_storage(f"{user_id}/mask_video.mp4", 300)
     
+@svc.api(input=bentoml.io.Text(), output=bentoml.io.Text())
+def expected_time(user_id_params: str):
+    user_id = user_id_params.split("=")[-1]
+
+    cap = cv2.VideoCapture(read_on_storage(f"{user_id}/original_video.mp4"))
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    
+    if height == 720.0:
+        time = frames*(0.02+0.005+0.3)+90.0
+    
+    if height == 1080.0:
+        time = frames*(0.06+0.011+1)+90.0
+    
+    now = datetime.datetime.now() #utc 기준
+    end_time = now + datetime.timedelta(hours = 9, minutes=5, seconds=time)
+    
+    return f"작업이 {end_time.strftime('%Y-%m-%d %H:%M:%S')}에 완료될 예정입니다."
