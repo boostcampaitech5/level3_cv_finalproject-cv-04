@@ -1,4 +1,3 @@
-import io
 import os
 import uuid 
 import urllib.request as req
@@ -31,8 +30,8 @@ def upload_data(user_id, image_files, video_bytes):
 def main_page():
     
     #image 
-    st.image("./data/youtube_twitch.png", width = 600)
-    st.title(":mage: 컨텐츠 크리에이터를 위한 자동 개인정보 비식별화 서비스")
+    st.image("./data/tiktokyoutubetwitch.jpg", use_column_width="auto")
+    st.title(":mage: 프라이버시 보호를 위한 AI 영상 마스킹 서비스")
     st.divider()
     
     st.write(":camera: blur 처리를 하지 않을 인물의 사진을 5장 입력해주세요. 얼굴이 잘 보이는 사진으로 업로드해주세요.")
@@ -50,7 +49,7 @@ def main_page():
         user_id = uuid.uuid1().int
         video_bytes = video_file.getvalue()  
         st.write(":camera: 입력하신 이미지를 확인해주세요.")
-        st.image(image_files, width=200, ###########수정수정
+        st.image(image_files, width=250,
                 caption=[f"image {i}" for i in range(len(image_files))])
     
         st.write(":film_projector: 입력하신 비디오를 확인해주세요.")
@@ -85,8 +84,7 @@ def main_page():
                                     data=file,
                                     file_name="result.mp4",
                                     mime="video/mp4"
-                                )
-        # st.sleep(5)
+                                )     
     else:
         st.write(":hourglass_flowing_sand: 입력을 기다리고 있어요.")
 
