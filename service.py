@@ -15,7 +15,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib.request import urlopen
 
 #media 
-from moviepy.editor import VideoFileClip, AudioFileClip
+from moviepy.editor import VideoFileClip
 import ffmpeg
 import cv2
 from PIL import Image
@@ -32,7 +32,7 @@ from google.cloud import storage
 BUCKET_NAME = "nynlp_bucket"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/opt/ml/nynlp_gcp_key.json"
 
-yolov8_runner = bentoml.pytorch.get("yolov8x-seg:latest").to_runner()
+yolov8_runner = bentoml.pytorch.get("yolov8-seg-finetune:latest").to_runner()
 svc = bentoml.Service("blur_service", runners=[yolov8_runner])
 
 class VideoInfo():
@@ -45,7 +45,7 @@ class VideoInfo():
         self.resized_height = resized_height
         self.bitrate = bitrate
         
-def write_on_storage(blob_name, file):
+def write_on_storage(blob_name: str="", file=None):
     print(f"writing on storage...{blob_name}")
     
     storage_client = storage.Client()
@@ -86,14 +86,14 @@ def write_on_storage(blob_name, file):
             return True
     return False
      
-def read_on_storage(blob_name, patience:int = 300):
+def read_on_storage(blob_name: str="", patience:int = 300):
     print(f"read on storage {blob_name}")
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
     return blob.generate_signed_url(datetime.timedelta(seconds=patience), method='GET')
 
-def read_files_on_storage(blob_name, prefix):
+def read_files_on_storage(blob_name: str="", prefix: str=""):
     print(f"read files on storage {prefix}")
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
@@ -103,10 +103,12 @@ def read_files_on_storage(blob_name, prefix):
     return file_list    
 
     
-def resize_frame(video_path, tmp_dir):
+def resize_frame(video_path: str="", tmp_dir: str=""):
 
+    # 동영상 파일 경로 설정
     print(f"resize_frame: start to read video in {video_path}")
     
+    # 동영상 캡처 객체 생성
     cap = cv2.VideoCapture(video_path)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -123,9 +125,11 @@ def resize_frame(video_path, tmp_dir):
               resized_width = resized_w, resized_height = resized_h, 
               bitrate=cap.get(cv2.CAP_PROP_BITRATE))
 
+    # 프레임 번호 초기화
     frame_num = 0
     frame_len = len(str(frames))
 
+    # 동영상 프레임 읽기
     while cap.isOpened():
         start = time.time()
         ret, frame = cap.read()
@@ -144,13 +148,14 @@ def resize_frame(video_path, tmp_dir):
 
         frame_num += 1
 
+    # 캡처 객체 해제
     cap.release()
     print("resize_frame is finished")
     
     return vid_info
 
         
-def extract_audio(file_url, user_id):
+def extract_audio(file_url: str="", user_id: str=""):
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(f"{user_id}/{user_id}_audio.mp3")
@@ -169,10 +174,11 @@ def extract_audio(file_url, user_id):
     print("extract_audio done!")
     return True 
 
-def human_seg(user_id: str, tmp_dir, video_info):
+def human_seg(user_id: str="", tmp_dir: str="", video_info=None):
     """tmp_dir에 저장된 frame image를 이용해 pickle을 만듦 
     """    
-    model = YOLO('./yolo/yolov8x-seg.pt')   
+    model = YOLO('/opt/ml/final_project/yolo/coco-person-1280-es50-m.pt')   
+    # model.export(format='engine', imgsz=[video_info.height,video_info.width], device=0)    
     results = model.predict(tmp_dir, imgsz=(video_info.resized_height, video_info.resized_width), stream=True)
 
     res = []
@@ -199,27 +205,28 @@ def human_seg(user_id: str, tmp_dir, video_info):
     write_on_storage(f'{user_id}/yolo_seg.pickle', res)
     print("human seg is successfully finished")
     
-def face_check(user_id: str, tmp_dir):
+def face_check(user_id: str="", tmp_dir: str=""):
+    # initialize variables
     MIN_FACE_SIZE = 20
     THRESHOLD = 1
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Running on device: {}'.format(device))
-
+    # define face detection model
     mtcnn = MTCNN(
         image_size=160, margin=0, min_face_size=MIN_FACE_SIZE,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
         device=device
     )
-
+    # define classification module
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
     
-
+    # result pickle load 
     pickle_path = read_on_storage(f'{user_id}/yolo_seg.pickle')
     outputs = pickle.load(urlopen(pickle_path)) #, "rb")
     results = outputs
 
     print(f"Load target image...")
-
+    # 클라우드에서 타겟 이미지 로드 
     aligned = []
     for frame in read_files_on_storage(user_id, "target_img"):
         if frame.split(".")[-1] in {"jpg", "png", "jpeg"}:
@@ -227,22 +234,20 @@ def face_check(user_id: str, tmp_dir):
             e1_img = Image.open(urlopen(source)).convert("RGB")
             e1_aligned = mtcnn(e1_img)
             aligned.append(e1_aligned)    
-    batched_e1 = torch.stack(aligned).to(device) #사진에 얼굴이 다 없으면 오류남 
+    batched_e1 = torch.stack(aligned).to(device) 
     e1 = resnet(batched_e1).detach().cpu()
     e1_mean = e1.mean(dim=0)
     
     print(f"Check target on each frames...")
-
+    # image directory path
     file_names = sorted(glob(os.path.join(tmp_dir+"/", "*.jpg")))
     for idx, file_name in tqdm(enumerate(file_names), total=len(file_names)):
         ori_img = Image.open(file_name).convert("RGB")
         aligned = []
         detect_id = []
         for i, res in enumerate(results[idx]):
-            # trk_label = res["label"]
             trk_box = res["bbox"][0:4]
             copy_img = copy.deepcopy(ori_img)
-            # if trk_label == 0:
             crop_img = copy_img.crop([*trk_box])
             min_l = min((trk_box[2]-trk_box[0]), (trk_box[3]-trk_box[1]))
             if min_l >= MIN_FACE_SIZE:
@@ -250,7 +255,6 @@ def face_check(user_id: str, tmp_dir):
                 if x_aligned is not None:
                     aligned.append(x_aligned)
                     detect_id.append(i)
-
         if aligned:
             # detected face embedding
             aligned = torch.stack(aligned).to(device)
@@ -259,16 +263,16 @@ def face_check(user_id: str, tmp_dir):
             dists = [(e1_mean - e2).norm().item() for e2 in embeddings]
             for dist, idd in zip(dists, detect_id):
                 if dist <= THRESHOLD and dist == min(dists): # same face
-                    results[idx][idd]["is_same"] = 1  # 수정
+                    results[idx][idd]["is_same"] = 1  
                 else:
-                    results[idx][idd]["is_same"] = 0  # 수정
+                    results[idx][idd]["is_same"] = 0  
     
     #make pickles
     write_on_storage(f'{user_id}/face_det.pickle', outputs)
     print("face detection is successfully finished")
 
             
-def masking_blur(user_id, tmp_dir, video_info):
+def masking_blur(user_id: str="", tmp_dir: str="", video_info=None):
     print("Start masking....")
     pickle_path = read_on_storage(f'{user_id}/face_det.pickle')
     outputs = pickle.load(urlopen(pickle_path)) 
@@ -290,29 +294,28 @@ def masking_blur(user_id, tmp_dir, video_info):
         img_arr = np.ascontiguousarray(ori_img).clip(0, 255)
         seg_mask_agg = np.zeros_like(img_arr)
         color = [255, 255, 255]
-        for i, res in enumerate(results[idx]):
+        for _, res in enumerate(results[idx]):
             try:
                 trk_is_same = res["is_same"]
                 if not trk_is_same:
                     seg_mask = mask_util.decode(res["segm"])
                     seg_mask_agg[seg_mask==1] = color
-            except: 
+            except: # 얼굴이 없음
                 ...
  
         img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2BGR)
         blurred_img = cv2.GaussianBlur(img_arr, (21, 21), 0)
         masked_arr = np.where(seg_mask_agg==color, blurred_img, img_arr)
-        if idx%25 == 0:
-            cv2.imwrite(r"%s/frame_seg_%03d.jpg"%("./user_data", idx), masked_arr)
+
         out.write(masked_arr)
 
     cap.release()
-    out.release() 
+    out.release() # 모델을 통한 결과물 생성 완료 (result.mp4)
     
     write_on_storage(f"{user_id}/mask_video.mp4", tmp_dir+f"{user_id}.mp4")
 
 
-def merge_audio_video(user_id, tmp_dir):
+def merge_audio_video(user_id: str="", tmp_dir: str=""):
     video_path = read_on_storage(f"{user_id}/mask_video.mp4")
     audio_path = read_on_storage(f"{user_id}/{user_id}_audio.mp3")
 
@@ -322,7 +325,7 @@ def merge_audio_video(user_id, tmp_dir):
     write_on_storage(f"{user_id}/final_video.mp4", tmp_dir+"/final_video.mp4")
 
 @svc.api(input=bentoml.io.Text(), output=bentoml.io.Text())
-def make_video(user_id_params: str):
+def make_video(user_id_params: str=""):
     user_id = user_id_params.split("=")[-1]
     print('user_id', user_id)
     
@@ -334,25 +337,25 @@ def make_video(user_id_params: str):
         masking_blur(user_id, tmp_dir, video_info)
         if audio_flag:
             merge_audio_video(user_id, tmp_dir)
-            return read_on_storage(f"{user_id}/final_video.mp4", 300)
+            return read_on_storage(f"{user_id}/final_video.mp4", 600)
         
-        return read_on_storage(f"{user_id}/mask_video.mp4", 300)
+        return read_on_storage(f"{user_id}/mask_video.mp4", 600)
     
-@svc.api(input=bentoml.io.Text(), output=bentoml.io.Text())
-def expected_time(user_id_params: str):
-    user_id = user_id_params.split("=")[-1]
+def convert(seconds):
+    return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
+@svc.api(input=bentoml.io.Text(), output=bentoml.io.Text())
+def expected_time(user_id_params: str=""):
+    user_id = user_id_params.split("=")[-1]
+    
     cap = cv2.VideoCapture(read_on_storage(f"{user_id}/original_video.mp4"))
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     
     if height == 720.0:
-        time = frames*(0.02+0.005+0.3)+90.0
+        time = frames*(0.02+0.027+0.19+0.06)+100
     
     if height == 1080.0:
-        time = frames*(0.06+0.011+1)+90.0
+        time = frames*(0.06+0.05+0.27+0.14)+130
     
-    now = datetime.datetime.now() #utc 기준
-    end_time = now + datetime.timedelta(hours = 9, minutes=5, seconds=time)
-    
-    return f"작업이 {end_time.strftime('%Y-%m-%d %H:%M:%S')}에 완료될 예정입니다."
+    return f"입력하신 동영상 정보를 알려드려요: {int(height)}p, 총 {int(frames)} 프레임. 예상 소요 시간은 {convert(int(time)+60)} 입니다."
