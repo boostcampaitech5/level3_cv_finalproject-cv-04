@@ -15,9 +15,8 @@
     - 개발 환경: linux, GCP, V100 GPU 3대
     - 프레임워크 및 주요 라이브러리: PyTorch, OpenCV, FFMPeg, Pytorch, BentoML, Ultralytics
     - 데이터
-        - kaggle
-            - [Segmentation Full Body TikTok Dancing Dataset](https://www.kaggle.com/datasets/tapakah68/segmentation-full-body-tiktok-dancing-dataset)
-            - [TikTokDataset](https://www.kaggle.com/datasets/yasaminjafarian/tiktokdataset)
+      - roboflow: [COCO Dataset Limited (Person Only)](https://universe.roboflow.com/shreks-swamp/coco-dataset-limited--person-only)
+      - kaggle: [Segmentation Full Body TikTok Dancing Dataset](https://www.kaggle.com/datasets/tapakah68/segmentation-full-body-tiktok-dancing-dataset), [TikTokDataset](https://www.kaggle.com/datasets/yasaminjafarian/tiktokdataset)
 - 서비스 플로우
 ![service_flow](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/cb6099ee-94c9-49ab-bf98-37f6dec906e7)
 ## 3. Proto type
