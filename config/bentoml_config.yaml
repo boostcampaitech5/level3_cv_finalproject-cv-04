@@ -1,0 +1,5 @@
+version: 1
+api_server:
+  workers: 1
+  http:
+    port: 30008
