@@ -17,7 +17,8 @@
     - 데이터
       - roboflow: [COCO Dataset Limited (Person Only)](https://universe.roboflow.com/shreks-swamp/coco-dataset-limited--person-only)
 - 서비스 플로우
-![service_flow](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/cb6099ee-94c9-49ab-bf98-37f6dec906e7)
+![service_flow](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/0b43e8c0-393e-4ef1-a1ea-60107042a9c2)
+
 ## 4. Proto type
 ### 1. 주요 인물의 사진과 편집할 영상을 업로드 
 ![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/8561fabb-9072-4ba2-98ec-89859dcf2106)
