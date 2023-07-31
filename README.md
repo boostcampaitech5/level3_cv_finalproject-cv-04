@@ -21,14 +21,13 @@
 
 ## 4. Proto type
 ### 1. 주요 인물의 사진과 편집할 영상을 업로드 
-![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/8561fabb-9072-4ba2-98ec-89859dcf2106)
+![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/0038ed49-5338-4d26-9e57-5c2e270ab4d8)
 ### 2. 업로드한 사진과 영상을 확인 
-![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/5fac2e54-b6f9-4916-9a9e-169240903987)
+![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/aa3a9417-798c-42b2-a7cc-9c5cc2f08d24)
 ### 3. 예상 소요 시간 확인 후 진행 버튼 클릭  
-![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/dfb1dc1b-ce85-4693-a9cd-f3bb9d3437f5)
+![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/ac175e76-6560-4aa3-9008-bf0fc21c39b3)
 ### 4. 편집 완료 후, download 버튼을 눌러 영상 다운로드
-![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/927a0374-3a25-410a-a25b-3c1122c94596)
-
+![image](https://github.com/boostcampaitech5/level3_cv_finalproject-cv-04/assets/19367749/cf815263-ee54-40c6-a496-293f49d4397b)
 
 
 ## 5. Members
